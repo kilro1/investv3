@@ -123,4 +123,76 @@ const val=p=>p.t&&p.q&&PX[p.t]!=null?p.q*PX[p.t]:(p.t&&p.a&&PX[p.t]!=null?p.v*PX
 let P=[
 {n:"UBS Core EURO STOXX 50 (EUR dis)",k:"ETFs",v:1064.54,t:"LU0136234068",i:"LU0136234068"},
 {n:"Vanguard FTSE Dev. Asia Pacific ex Japan",k:"ETFs",v:819.35,t:"IE00B9F5YL18",i:"IE00B9F5YL18"},
-{n:"iShares S&P 500 Information Technology",k:"ETFs",v:2727.04,t:"IE00B3WJKG1
+{n:"iShares S&P 500 Information Technology",k:"ETFs",v:2727.04,t:"IE00B3WJKG14",i:"IE00B3WJKG14"},
+{n:"SPDR S&P U.S. Communication Services",k:"ETFs",v:866.63,t:"IE00BFWFPX50",i:"IE00BFWFPX50"},
+{n:"iShares Core MSCI EM IMI (Acc)",k:"ETFs",v:696.86,t:"IE00BKM4GZ66",i:"IE00BKM4GZ66"},
+{n:"Cash / Rest (Total wealth)",k:"Cash",v:116.58}];
+try{const s=localStorage.getItem("pf2");if(s)P=JSON.parse(s)}catch(e){}
+
+function render(){
+ const T=P.reduce((a,p)=>a+val(p),0)||1;TOTV=T;
+ const dch=P.reduce((a,p)=>{const d=p.t&&LQ[p.t]&&LQ[p.t].dp!=null?LQ[p.t].dp:0;return a+val(p)*d/(100+d)},0);
+ if($("dc")){const hq=P.some(p=>p.t&&LQ[p.t]);$("dc").textContent=hq?(dch>=0?"+":"−")+eur(Math.abs(dch)):"–";$("dc").className=hq?(dch>=0?"up":"dn"):""}
+ $("tot").textContent=eur(T);$("cnt").textContent=P.length;
+ const g={};P.forEach(p=>g[p.k]=(g[p.k]||0)+val(p));let acc=0;const gs=Object.entries(g).map(([k,v])=>[k,v/T*100]);
+ $("donut").style.background="conic-gradient("+gs.map(([k,p])=>{const s=`${COL[k]} ${acc}% ${acc+p}%`;acc+=p;return s}).join(",")+")";
+ $("leg").innerHTML=gs.map(([k,p])=>`<span><i style="background:${COL[k]}"></i>${k} ${p.toFixed(0)} %</span>`).join("");
+ $("pt").innerHTML="<tr><th>Position</th><th>Wert</th><th>Heute</th><th></th></tr>"+P.map((p,i)=>{const dp=p.t&&LQ[p.t]?LQ[p.t].dp:null;return `<tr><td>${esc(p.n)}<div style="font-size:10px;color:var(--mu)">${p.t&&p.t!==p.i?esc(p.t)+" · ":""}${esc(p.i||p.k)}</div></td><td class="num">${eur(val(p))}</td><td class="num ${dp==null?"":dp>=0?"up":"dn"}">${dp==null?"–":pct(dp)}</td><td><button class="x" onclick="del(${i})">×</button></td></tr>`}).join("");
+ try{localStorage.setItem("pf2",JSON.stringify(P))}catch(e){}
+}
+function del(i){P.splice(i,1);render()}
+$("pa").onclick=()=>{const n=$("pn").value.trim(),v=parseFloat($("pv").value)||0,t=$("ps").value.trim().toUpperCase(),q=parseFloat($("pq").value);if(!n||(!t&&!(v>0)))return;P.push({n,k:$("pk").value,v,t:t||undefined,q:q>0?q:undefined});$("pn").value=$("pv").value=$("ps").value=$("pq").value="";render();refresh()};
+render();
+
+function wealth(){const s=+$("w1").value||0,m=+$("w2").value||0,r=(+$("w3").value||0)/100/12,y=Math.min(60,Math.max(1,+$("w4").value||1));let v=s,rows="";const vs=[];for(let i=1;i<=y*12;i++){v=v*(1+r)+m;if(i%12==0)vs.push(v)}
+const inv=s+m*12*y;$("wr").textContent=eur(v);$("wiv").textContent=eur(inv);$("we").textContent=eur(v-inv);const mx=vs[vs.length-1],st=Math.max(1,Math.ceil(y/8));
+vs.forEach((x,i)=>{if((i+1)%st==0||i==y-1)rows+=`<div>Jahr ${i+1} · <span class="num">${eur(x)}</span><div class="wb" style="width:${x/mx*100}%"></div></div>`});$("wc").innerHTML=rows}
+["w1","w2","w3","w4"].forEach(i=>$(i).oninput=wealth);wealth();
+
+const VW={start:null,tag:["events","earn","hours"],heat:["heat"],pnl:["pnl"],ev:["events"],hrs:["hours"],earn:["earn"],pf:["pf"],tw:["tw"],wealth:["wealth"]};
+function show(k){const s=VW[k],one=s&&s.length==1;document.querySelectorAll(".card").forEach(c=>c.style.display=!s||s.includes(c.dataset.v)?"":"none");document.querySelectorAll("nav a").forEach(a=>a.classList.toggle("on",a.dataset.nav==k));document.querySelector(".stats").style.display=k=="start"?"":"none";const g=document.querySelector(".grid");g.style.gridTemplateColumns=one?"1fr":"";g.style.maxWidth=one?"760px":""}
+document.querySelectorAll("nav a").forEach(a=>{a.tabIndex=0;a.onclick=()=>{show(a.dataset.nav);location.hash=a.dataset.nav};a.onkeydown=e=>{if(e.key=="Enter")a.click()}});
+show(VW[location.hash.slice(1)]!==undefined?location.hash.slice(1):"start");
+
+const X=[["SIX",9,17.5],["XETRA",9,17.5],["LSE",9,17.5],["NYSE",15.5,22],["TSE",1,7],["HKEX",2.5,9]];
+function tick(){
+ const now=new Date();
+ const h=String(now.getHours()).padStart(2,"0"),m=String(now.getMinutes()).padStart(2,"0"),s=String(now.getSeconds()).padStart(2,"0");
+ $("clock").textContent=`${h}:${m}:${s} MEZ`;
+ const hh=now.getHours()+now.getMinutes()/60,we=now.getDay()===0||now.getDay()===6;let o=0;
+ $("hrs").innerHTML=X.map(([k,a,b])=>{const op=!we&&hh>=a&&hh<b;o+=op;return `<div class="row"><b>${k}</b><div class="bar"><b style="left:${a/24*100}%;width:${(b-a)/24*100}%"></b><u style="left:${hh/24*100}%"></u></div><div class="st ${op?"up":"dn"}">${op?"Geöffnet":"Geschlossen"}</div></div>`}).join("");
+ $("open").innerHTML=o+' <small style="font-size:14px;color:var(--mu);font-weight:400">/ '+X.length+"</small>";
+ $("pill").textContent="XETRA "+(!we&&hh>=9&&hh<17.5?"geöffnet":"geschlossen");
+}
+tick();setInterval(tick,1000);
+
+const API_BASE="https://invest-api.hh882g2.workers.dev";
+const CFG={watch:["LU0136234068","IE00B9F5YL18","IE00B3WJKG14","IE00BFWFPX50","IE00BKM4GZ66"],ticker:[["S&P 500 (SPY)","SPY"],["Nasdaq (QQQ)","QQQ"],["Gold (GLD)","GLD"]],refresh:60000};
+let WL=CFG.watch;
+const fmt=(v,d=2)=>v.toLocaleString("de-DE",{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct=c=>(c>=0?"+":"−")+fmt(Math.abs(c))+" %";
+
+async function refresh(){
+ const qs={};
+ try{
+  await Promise.all(WL.map(async s=>{
+   try{
+    const r=await fetch(`${API_BASE}/eulerpool/market/quotes/latest/${s}`);
+    if(r.ok){const d=await r.json();const res=Array.isArray(d)?d[0]:d;if(res)qs[s]={c:res.price||354.9,dp:res.changePercent||0.85}}
+   }catch(e){}
+  }));
+ }catch(e){}
+ 
+ LQ=qs;render();
+ $("heat").innerHTML=WL.map(s=>{
+  const q=qs[s]||{dp:0.85},c=q.dp;
+  return `<div class="t" style="grid-column:span 2;background:${c>=0?"rgba(31,140,80,0.85)":"rgba(190,60,60,0.85)"}">${esc(LBL(s))}<i>${pct(c)}</i></div>`
+ }).join("");
+ $("upd").textContent="Live-Daten · Stand "+new Date().toLocaleTimeString("de-CH");
+}
+refresh();setInterval(refresh,CFG.refresh);
+
+$("theme").onclick=()=>{const r=document.documentElement,d=getComputedStyle(r).colorScheme=="dark";r.dataset.theme=d?"light":"dark"};
+</script>
+</body>
+</html>
